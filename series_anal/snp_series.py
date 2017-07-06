@@ -29,6 +29,7 @@ class series_item_class(object) :
         out_data[:] = self.snp_data['pos']
         return out_data
 
+
 class snp_series_set(object) :
     total_allele_count = 5008
     cra = country_region_alleles_cls()
@@ -138,8 +139,121 @@ class snp_series_set(object) :
             
             
             
+class analyze_series_snps_cls(object) :
+    snp_data_dtype = np.dtype([('snp_index', 'u4'), ('pos', 'u4'), ('allele_mask', '?', 5008)])
+    def __init__(self, snp_series_item) :
+        self.series_data = snp_series_item
+        item_obj = self.series_data['series_obj']
+        self.p90_allele_mask = item_obj.series_allele_maskseries_allele_mask = item_obj.series_allele_mask
+        snp_count = item_obj.snp_data.size
+        series_snp_data = np.zeros(snp_count, self.snp_data_dtype)
+        snp_data = item_obj.snp_data
+        series_snp_data['snp_index'] = snp_data['snp_index']
+        series_snp_data['pos'] = snp_data['pos']
+        series_snp_data['allele_mask'] = item_obj.snp_allele_masks
+        self.snp_data = series_snp_data
+
+    def series_allele_indexes(self) :
+        return np.where(self.p90_allele_mask)[0]
+        
+    def series_allele_masks(self) :
+        p90_allele_indexes = self.series_allele_indexes()
+        return self.snp_data['allele_mask'][:, p90_allele_indexes]
+        
+    def snps_per_p90_alleles(self) :
+        allele_masks = self.series_allele_masks()
+        return allele_masks.sum(axis=0)
+
+    def comp_allele_masks(self, comp_allele_indexes) :
+        return self.snp_data['allele_mask'][:, comp_allele_indexes]
+        
+    def snps_per_comp_allele(self, comp_allele_indexes) :
+        allele_masks = self.comp_allele_masks(comp_allele_indexes)
+        return allele_masks.sum(axis=0)
             
-            
+    def get_unique_counts(self, spa) :
+        spa.sort()
+        return np.unique(spa, return_counts=True)
+
+    def all_allele_snp_counts(self) :
+        allele_masks = self.snp_data['allele_mask']
+        spa = allele_masks.sum(axis=0)
+        return self.get_unique_counts(spa)
+        
+    def comp_index_counts(self, comp_allele_indexes) :
+        spa = self.snps_per_comp_allele(comp_allele_indexes)
+        return self.get_unique_counts(spa)        
+        
+    def allele_indexes_from_snp_count(self, snp_count, maybe_allele_indexes=None) :
+        allele_masks = self.snp_data['allele_mask']
+        if maybe_allele_indexes is None :
+            spa = allele_masks.sum(axis=0)
+            m = spa == snp_count
+            return np.where(m)[0]
+        else :
+            allele_masks = allele_masks[:,maybe_allele_indexes]
+            spa = allele_masks.sum(axis=0)
+            m = spa == snp_count
+            return maybe_allele_indexes[m]
+
+    def simple_html(self, v, c) :
+        num_tag = '<td style="text-align: right;">'
+        int_fmt =  '{:d}'
+        column_info = [('snps', v, num_tag, int_fmt),
+                       ('chroms', c, num_tag, int_fmt)]
+        data_html_obj = html.html_table_cls(column_info)
+        html_table = data_html_obj.assemble_table()
+        return html_table
+        
+    def all_allele_html(self) :
+        v, c = self.all_allele_snp_counts()
+        return self.simple_html(v, c)
+        
+    def p90_html(self) :
+        spa = self.snps_per_p90_alleles()
+        v, c = self.get_unique_counts(spa)
+        return self.simple_html(v, c)
+
+    def comp_index_html(self, comp_allele_indexes) :
+        data = {}
+        data['all'] = self.all_allele_snp_counts()
+        data['comp'] = self.comp_index_counts(comp_allele_indexes)
+        t_d = self.do_common_value_index(data)
+        num_tag = '<td style="text-align: right;">'
+        int_fmt =  '{:d}'
+        column_info = [('snps', t_d['value_index'], num_tag, int_fmt),
+                       ('all', t_d['all'], num_tag, int_fmt),
+                       ('comp', t_d['comp'], num_tag, int_fmt)]
+        data_html_obj = html.html_table_cls(column_info)
+        html_table = data_html_obj.assemble_table()
+        return html_table
+        
+        
+    def do_common_value_index(self, data) :
+        values = [data[key][0] for key in data.keys()]
+        values = np.concatenate(values)
+        values.sort()
+        unique_values = np.unique(values)
+        out_data = {}
+        out_data['value_index'] = unique_values
+        for key in data.keys() :
+            dv, dc = data[key]
+            di = unique_values.searchsorted(dv)
+            od = np.zeros(unique_values.size, dc.dtype)
+            od[di] = dc
+            out_data[key] = od
+        return out_data
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
             
             
             

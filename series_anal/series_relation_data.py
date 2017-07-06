@@ -60,20 +60,44 @@ class interval_data_cls(object) :
         not_or_allele_mask = np.logical_not(not_or_allele_mask)
         return np.logical_and(and_allele_mask, not_or_allele_mask)
 
-    def not_allele_mask(self, not_data_indexes) :
+    def not_or_allele_mask(self, not_data_indexes) :
         allele_mask = self.or_allele_mask(not_data_indexes)
+        return np.logical_not(allele_mask)
+        
+    def not_and_allele_mask(self, not_data_indexes) :
+        allele_mask = self.and_allele_mask(not_data_indexes)
         return np.logical_not(allele_mask)
         
     def yes_no_data_indexes(self, yes_data_indexes=None, no_data_indexes=None) :
         if yes_data_indexes is None :
-            return self.not_allele_mask(no_data_indexes)
-        if no_data_indexes is None :
-            return self.and_allele_mask(yes_data_indexes)
-        return self.and_and_not_or_allele_mask(yes_data_indexes, no_data_indexes)
+            result = self.not_or_allele_mask(no_data_indexes)
+        elif no_data_indexes is None :
+            result = self.and_allele_mask(yes_data_indexes)
+        else :
+            result = self.and_and_not_or_allele_mask(yes_data_indexes, no_data_indexes)
+        result = result.astype('?')
+        return result
+
+    def yes_allele_mask_or_indexes(self, yes_allele_mask, data_indexes) :
+        or_allele_mask = self.or_allele_mask(data_indexes)
+        return np.logical_and(yes_allele_mask, or_allele_mask)
         
+    def yes_allele_mask_and_indexes(self, yes_allele_mask, data_indexes) :
+        and_allele_mask = self.and_allele_mask(data_indexes)
+        return np.logical_and(yes_allele_mask, and_allele_mask)
+ 
+    def yes_allele_mask_not_or_indexes(self, yes_allele_mask, no_data_indexes) :
+        no_allele_mask = self.not_or_allele_mask(no_data_indexes)
+        return np.logical_and(yes_allele_mask, no_allele_mask)
+        
+    def yes_allele_mask_not_and_indexes(self, yes_allele_mask, no_data_indexes) :
+        no_allele_mask = self.not_and_allele_mask(no_data_indexes)
+        return np.logical_and(yes_allele_mask, no_allele_mask)
+
     def allele_mask_from_data_index(self, data_index) :
         interval_index = self.series_data['data_index'].searchsorted(data_index)
         out_mask = self.allele_masks[interval_index].copy()
+        out_mask = out_mask.astype('?')
         return out_mask
         
     def superset_series_mask_from_allele_indexes(self, allele_indexes, min_match=0.9) :
@@ -117,30 +141,26 @@ class interval_data_cls(object) :
     def superset_data_from_match_allele_mask(self, match_allele_mask, min_match=0.9) :
         #match_allele_mask = self.yes_no_data_indexes(yes_indexes, no_indexes)
         match_allele_count = match_allele_mask.sum()
-        series_match_masks  = np.logical_and(self.allele_masks, match_allele_mask)
-        match_alleles_per_series = series_match_masks.sum(axis=1)
-        min_match_count = min_match*float(match_allele_count)
-        match_mask = match_alleles_per_series >= min_match_count
-        matched_series = self.series_data[match_mask]
-        matched_series_allele_masks = self.allele_masks[match_mask]
-        series_match_masks = series_match_masks[match_mask]
+        if match_allele_count == 0 :
+            matched_series = np.empty(0, self.series_data.dtype)
+            matched_series_allele_masks = np.empty((0, self.total_allele_count), '?')
+            series_match_masks = np.empty((0, self.total_allele_count), '?')
+        else :
+            series_match_masks  = np.logical_and(self.allele_masks, match_allele_mask)
+            match_alleles_per_series = series_match_masks.sum(axis=1)
+            min_match_count = min_match*float(match_allele_count)
+            match_mask = match_alleles_per_series >= min_match_count
+            matched_series = self.series_data[match_mask]
+            matched_series_allele_masks = self.allele_masks[match_mask]
+            series_match_masks = series_match_masks[match_mask]
         return matched_series, matched_series_allele_masks, series_match_masks
 
     def superset_data_from_yes_no_indexes(self, yes_indexes, no_indexes=None, min_match=0.9) :
         match_allele_mask = self.yes_no_data_indexes(yes_indexes, no_indexes)
-        return self.superset_data_from_match_allele_mask(match_allele_mask, min_match)
+        matched_series, matched_series_allele_masks, series_match_masks = (
+                                      self.superset_data_from_match_allele_mask(match_allele_mask, min_match))
+        return match_allele_mask, matched_series, matched_series_allele_masks, series_match_masks
         
-        '''
-        match_allele_count = match_allele_mask.sum()
-        series_match_masks  = np.logical_and(self.allele_masks, match_allele_mask)
-        match_alleles_per_series = series_match_masks.sum(axis=1)
-        min_match_count = min_match*float(match_allele_count)
-        match_mask = match_alleles_per_series >= min_match_count
-        matched_series = self.series_data[match_mask]
-        matched_series_allele_masks = self.allele_masks[match_mask]
-        series_match_masks = series_match_masks[match_mask]
-        return matched_series, matched_series_allele_masks, series_match_masks
-        '''
 
     def subset_data_from_match_allele_mask(self, match_allele_mask, min_match=0.9) :
         series_match_masks  = np.logical_and(self.allele_masks, match_allele_mask)
@@ -155,24 +175,8 @@ class interval_data_cls(object) :
 
     def subset_data_from_yes_no_indexes(self, yes_indexes, no_indexes=None, min_match=0.9) :
         match_allele_mask = self.yes_no_data_indexes(yes_indexes, no_indexes)
-        return self.subset_data_from_match_allele_mask(match_allele_mask)
+        return self.subset_data_from_match_allele_mask(match_allele_mask, min_match)
         
-        '''
-        series_match_masks  = np.logical_and(self.allele_masks, match_allele_mask)
-        match_alleles_per_series = series_match_masks.sum(axis=1)
-        inds_yes_indexes = self.data_indexes.searchsorted(yes_indexes)
-        yes_alleles_per_series = self.alleles_per_series[inds_yes_indexes]
-        yes_match_alleles_per_series = match_alleles_per_series[inds_yes_indexes]
-        yes_match_ratios = yes_match_alleles_per_series.astype('f4')/yes_alleles_per_series.astype('f4')
-        min_yes_match_ratio = yes_match_ratios.min()
-        min_match_ratio = min_match*min_yes_match_ratio
-        match_ratios = match_alleles_per_series.astype('f4')/self.alleles_per_series.astype('f4')
-        match_mask = match_ratios > min_match_ratio
-        matched_series = self.series_data[match_mask]
-        matched_series_allele_masks = self.allele_masks[match_mask]
-        series_match_masks = series_match_masks[match_mask]
-        return matched_series, matched_series_allele_masks, series_match_masks
-        '''
 
     def series_data_from_data_indexes(self, data_indexes) :
         indexes = self.data_indexes.searchsorted(data_indexes)
@@ -324,7 +328,56 @@ class interval_data_cls(object) :
     def superset_html_from_data_index(self, data_index, min_match=0.9) :
         series_data, allele_masks, match_allele_counts = self.superset_data_from_data_index(data_index, min_match)
         return self.match_set_html(series_data, allele_masks, match_allele_counts)
+
+    '''
+    The series allele masks has the alleles that express the series
+    The match allele masks have the alleles that match the particular test
+    '''        
+    '''
+    def superset_html(self, series_data, series_allele_masks, match_allele_masks) :                               
+        sort_indexes = np.argsort(series_data, order='p90_allele_count')
+        sort_indexes = sort_indexes[::-1]
+        series_data = series_data[sort_indexes]
+        series_allele_masks = series_allele_masks[sort_indexes]
+        match_allele_masks = match_allele_masks[sort_indexes]
+        s_d = series_data
+        lengths = s_d['last_pos'] - s_d['first_pos']
+        match_alleles_per_series = match_allele_masks.sum(axis=1)
+        match_alles_per_series_f = match_alleles_per_series.astype('f4')
+        alleles_per_series_f = s_d['p90_allele_count'].astype('f4')
+        allele_ratios = match_alles_per_series_f/alleles_per_series_f
+        #match_allele_counts_f = match_allele_counts.astype('f4')
+        #match_ratios = np.zeros(allele_counts.size, dtype='f4')
+        #m = allele_counts_f > 0.0
+        #match_ratios[m] = match_allele_counts_f[m]/allele_counts_f[m]
+        num_tag = '<td style="text-align: right;">'
+        int_fmt =  '{:d}'
+        big_fmt =  '{:,}'
+        float_fmt = '{:.2f}'
+        column_info = [('index', s_d['data_index'], num_tag, int_fmt),
+                       ('first', s_d['first_pos'], num_tag, big_fmt),
+                       #('last', s_d['last_pos'], num_tag, big_fmt), 
+                       ('length', lengths, num_tag, big_fmt),
+                       ('snps', s_d['item_count'], num_tag, int_fmt),
+                       (('alleles',2), ((s_d['p90_allele_count'], num_tag, int_fmt), (allele_ratios, num_tag, float_fmt))),
+                       (('matches',2), ((match_alleles_per_series, num_tag, int_fmt), (allele_ratios, num_tag, float_fmt)))]
+        column_info.extend(self.region_stats_columns_from_allele_masks(match_allele_masks, 
+                                                               num_tag, int_fmt, float_fmt))                       
+        data_html_obj = html.html_table_cls(column_info)
+        html_table = data_html_obj.assemble_table()
+        return html_table
+        '''
         
+    def superset_html_from_yes_no_indexes(self, yes_indexes, no_indexes=None, min_match=0.9) :
+        data = self.superset_data_from_yes_no_indexes(yes_indexes, no_indexes, min_match)
+        focus_allele_mask, matched_series, matched_series_allele_masks, series_match_masks = data
+        return self.match_mask_html(focus_allele_mask, matched_series, matched_series_allele_masks, series_match_masks)
+
+    def superset_html_from_mask(self, allele_mask, min_match=0.9) :
+        data = self.superset_data_from_match_allele_mask(allele_mask, min_match)
+        matched_series, matched_series_allele_masks, series_match_masks = data
+        return self.match_mask_html(allele_mask, matched_series, matched_series_allele_masks, series_match_masks)
+
     def subset_html_from_data_index(self, data_index) :
         series_data, allele_masks, match_allele_counts = self.subset_data_from_data_index(data_index)
         return self.match_set_html(series_data, allele_masks, match_allele_counts)
@@ -386,8 +439,8 @@ class interval_data_cls(object) :
         return html_table
 
     def match_series_html(self, allele_mask, min_match=0.0001) :
-        series_data, series_allele_masks, match_allele_masks = self.expressed_series_from_allele_mask(allele_mask, min_match)
-        return self.match_mask_html(allele_mask, series_data, series_allele_masks, match_allele_masks, 
+        matched_series, matched_series_allele_masks, series_match_masks= self.expressed_series_from_allele_mask(allele_mask, min_match)
+        return self.match_mask_html(allele_mask, matched_series, matched_series_allele_masks, series_match_masks, 
                                     maybe_allele_mask=allele_mask)
 
     def match_series_html_from_data_index(self, data_index, min_match=0.0001) :

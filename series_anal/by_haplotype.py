@@ -27,7 +27,11 @@ def sister_allele_mask(allele_mask) :
     return sisters
     
 def have_both_sisters(allele_mask) :
-    m_both = allele_mask[::2] == allele_mask[1::2]
+    low_mask = np.logical_and(allele_mask, low_alleles)
+    high_mask = np.logical_and(allele_mask, high_alleles)
+    have_low = low_mask[::2]
+    have_high = high_mask[1::2]
+    m_both = np.logical_and(have_low, have_high)
     return m_both
     
 def allele_mask_for_both_sisters(allele_mask) :

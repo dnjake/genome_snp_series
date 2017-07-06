@@ -97,11 +97,13 @@ class series_plot_data_cls(object) :
         allele_masks = self.display_allele_masks['allele_mask']
         if self.has_yes_allele_mask :
             allele_masks[:] = np.logical_and(allele_masks, self.yes_allele_mask)
+        '''
         if self.has_no_allele_mask :
             good_allele_mask = np.logical_not(self.no_allele_mask)            
             allele_masks[:] = np.logical_and(allele_masks, good_allele_mask)
             self.build_regions_after_no_allele_mask()
-            
+        '''
+         
     def to_nd_array(self, data_indexes) :
         if type(data_indexes) is np.ndarray :
             return data_indexes
@@ -155,6 +157,8 @@ class series_plot_data_cls(object) :
 
     def get_color_for_allele_mask(self, allele_mask) :
         allele_indexes = np.where(allele_mask)[0]
+        '''
+        I want to stick with a single color
         if self.has_no_allele_mask :
             simple_region_stats = self.maybe_simple_region_stats(allele_indexes)
             #print simple_region_stats
@@ -162,6 +166,8 @@ class series_plot_data_cls(object) :
             #print self.maybe_alleles_total
         else :
             simple_region_stats = cra.simple_region_stats(allele_indexes)
+        '''
+        simple_region_stats = cra.simple_region_stats(allele_indexes)        
         obs_to_pred = simple_region_stats['obs_to_pred']
         ind_max_obs_to_pred = obs_to_pred.argmax()
         max_obs_to_pred = obs_to_pred[ind_max_obs_to_pred]
@@ -187,7 +193,11 @@ class series_plot_data_cls(object) :
         base_allele_count = base_allele_mask.sum()
         row = layout['row']
         label = str(snp_count) + '_' + str(base_allele_count)
+        '''
+        I want to stick with a single color for a series
         color = self.get_color_for_allele_mask(display_allele_mask)
+        '''
+        color = self.get_color_for_allele_mask(base_allele_mask)
         snp_pos = series_set_data['series_obj'].get_snp_pos()
         return first_pos, last_pos, snp_count, allele_count, row, label, color, snp_pos
 

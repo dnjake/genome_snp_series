@@ -17,10 +17,10 @@ class superset_yes_no_series_indexes_cls(object) :
         yes_indexes = self.plot_context.yes_data_indexes
         no_indexes = self.plot_context.no_data_indexes
         min_match = self.plot_context.min_allele_match
-        self.focus_allele_mask = interval_data_obj.yes_no_data_indexes(yes_indexes, no_indexes)
-        self.plot_context.yes_allele_mask = self.focus_allele_mask
+        #self.focus_allele_mask = interval_data_obj.yes_no_data_indexes(yes_indexes, no_indexes)
         exp_data = interval_data_obj.superset_data_from_yes_no_indexes(yes_indexes, no_indexes, min_match)
-        matched_series, matched_series_allele_masks, series_match_masks = exp_data
+        self.focus_allele_mask, matched_series, matched_series_allele_masks, series_match_masks = exp_data
+        self.plot_context.yes_allele_mask = self.focus_allele_mask
         self.matched_series = matched_series
         self.matched_series_allele_masks = matched_series_allele_masks
         self.series_match_masks = series_match_masks
