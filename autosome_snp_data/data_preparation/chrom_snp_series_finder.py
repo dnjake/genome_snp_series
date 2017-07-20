@@ -181,7 +181,7 @@ class chrom_snp_series_finder_cls(object) :
         Builds an index of the snps in each segment from the segment_size
         '''        
         snp_data_table = self.snp_data_rdr.snp_data_table
-        chrom_snp_data = np.zeros(snp_data_table.nrows, self.chrom_snp_pos_dtype)
+        #chrom_snp_data = np.zeros(snp_data_table.nrows, self.chrom_snp_pos_dtype)
         chrom_snp_data = np.zeros(snp_data_table.nrows, self.chrom_snp_pos_dtype)
         chrom_snp_data['snp_index'] = snp_data_table.col('snp_index')
         chrom_snp_data['pos'] = snp_data_table.col('pos')
