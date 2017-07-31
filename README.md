@@ -24,17 +24,17 @@ The content of the genomes_dnj work is in the tree of jupyter notebooks in this 
 
 The top level notebooks have been included in this repository in html format.
 
-    [overview](overview.html)
+    [overview](./overview.html)
     
-    [methods](methods.html)
+    [methods](./methods.html)
     
-    [hierarchies](hierarchies.html)
+    [hierarchies](./hierarchies.html)
     
-    [dense series roots](dense_series_roots.html)
+    [dense series roots](./dense_series_roots.html)
     
-    [chrom2 plots](chrom2_plots.html)
+    [chrom2 plots](./chrom2_plots.html)
     
-    [lactase persistence](lactase_persistence.html)
+    [lactase persistence](./lactase_persistence.html)
 
 The complete tree of 100 notebooks can be downloaded in html format from a [shared google drive notebooks_html folder](https://drive.google.com/drive/folders/0B0N6jrX3WLdfRUxDS2tDVVRia3c?usp=sharing).
 
